@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <SQLServerIP>127.0.0.1</SQLServerIP>
+	<SQLServerHostName>localhost</SQLServerHostName>
+    <SQLServerPort>1433</SQLServerPort>
+    <SQLInstanceName>SQLEXPRESS</SQLInstanceName>
+    <DLLSQLUser></DLLSQLUser>
+    <DLLUserPassword></DLLUserPassword>
+    <DicomServiceIPAddress>127.0.0.1</DicomServiceIPAddress>
+    <DLLPort>80</DLLPort>
+    <GatewayPort>59945</GatewayPort>
+    <ILSPort>58845</ILSPort>
+    <ILSBaseUrl>http://localhost:58845/</ILSBaseUrl>
+    <IBEHOST>127.0.0.1</IBEHOST>
+</Configuration>

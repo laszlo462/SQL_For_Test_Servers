@@ -2,6 +2,11 @@
 # Date: 07/18/2018
 # Installs SQL Server 2012 Express as per IBE defaults + Service Pack 3, for IBE test server deployment.
 
+#dot-sourcing external functions
+.".\_scriptFiles\Reset-DbaAdmin.ps1"
+.".\_scriptFiles\Set-DbaTcpPort.ps1"
+
+#Initializing some variables
 $scriptFile = $MyInvocation.MyCommand.Definition
 $scriptPath = Split-Path -Parent $scriptFile
 Set-Location -Path $scriptPath
@@ -12,6 +17,7 @@ $sqlArguments = '/PID="11111-00000-00000-00000-00000" /ConfigurationFile=' + $co
 $sqlSP3Arguments = '/qs /IAcceptSQLServerLicenseTerms /Action=Patch'
 $separator = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
+#Checking that SQL install folders exist
 If ($folderCheck1 -eq $false -Or $folderCheck2 -eq $false){
     Write-Host "SQL 2012 Standard and/or SQL 2012 SP3 folders not found."
     Write-Host "Please paste those folders from the DynaLync Install Files to the _PLACEHOLDER locations"

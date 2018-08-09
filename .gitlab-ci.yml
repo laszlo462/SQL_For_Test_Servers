@@ -21,3 +21,4 @@ build:
     - echo "------------------"
     - .\_scriptFiles\_SQLExpressInstall.ps1
   tags: [sql-build]
+  only: [master]

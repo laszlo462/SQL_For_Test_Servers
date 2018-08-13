@@ -14,45 +14,91 @@
 # Instantiate shell object for explorer folder interaction
 $folderObject = New-Object -comObject Shell.Application
 
-# Initializing initial variables
+# Initializing variables
+$ErrorActionPreference = Stop
 $scriptFile = $MyInvocation.MyCommand.Definition
 $scriptPath = Split-Path -Parent $scriptFile
 Set-Location -Path $scriptPath
 $configLocation = $scriptPath + "\2012ExpressConfigurationFile.ini"
-$folderCheck1 = Test-Path '..\SQL_2012_Standard\'
-$folderCheck2 = Test-Path '..\SQL_2012_ServicePack3\'
 $sqlArguments = '/PID="11111-00000-00000-00000-00000" /ConfigurationFile=' + $configLocation
 $sqlSP3Arguments = '/qs /IAcceptSQLServerLicenseTerms /Action=Patch'
 $separator = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
-function SourceFileLocation()
+# Functions
+function GetSQLSource
 {
-    Write-Host "Please select SQL_2012_Standard folder location"
-    $sqlSetup = $null
-    while ($sqlSetup -eq $null)
+    $pathCheck = $false
+    while($pathCheck -eq $false)
     {
-        try
+        $sqlStandardSource = $folderObject.BrowseForFolder(0, "Please select SQL_2012_Standard folder", 0)
+        if ($sqlStandardSource -ne $null)
         {
-            $sqlStandardSource = $folderObject.BrowseForFolder(0, "Please select SQL_2012_Standard folder", 0)
-            if ($sqlStandardSource -ne $null)
-            {
-                if (Test-Path -Path $sqlStandardSource.self.Path -Include setup.exe -eq $true)
-                {
-                    Write-Host "SQL Server 2012 Setup.exe found"
-                    $sqlSetup = $sqlStandardSource.self.Path
-                }
-                else {Write-Host "Setup.exe not found in " $sqlStandardSource.self.Path ", please try again"}
-            }
+            $fullPath = $sqlStandardSource.self.Path + "\*"
+            Write-Host "Checking..." $fullPath.Trim("*")
+            $pathCheck = Test-Path -Path $fullPath -Include setup.exe
         }
-        catch {}
+    }
+    $global:sqlSetupPath = $fullPath.Trim("*") + "setup.exe"
+    Write-Host "SQL 2012 Setup.exe found at " $sqlSetupPath -ForegroundColor Green
+}
+
+function GetSP3Source
+{
+    $pathCheck = $false
+    while($pathCheck -eq $false)
+    {
+        $sqlSp3Source = $folderObject.BrowseForFolder(0, "Please select SQL_2012_ServicePack3 folder", 0)
+        if ($sqlSp3Source -ne $null)
+        {
+            $fullPath = $sqlSp3Source.self.Path + "\*"
+            Write-Host "Checking..." $fullPath.Trim("*")
+            $pathCheck = Test-Path -Path $fullPath -Include SQLServer2012SP3-KB3072779-x64-ENU.exe
+        }
+    }
+    $global:sqlSp3Path = $fullPath.Trim("*") + "SQLServer2012SP3-KB3072779-x64-ENU.exe"
+    Write-Host "SQL 2012 SP3 installer found at " $sqlSp3Path -ForegroundColor Green
+}
+
+Write-Host ".NET 3.5 Prerequisite Check..."
+$netFX3dir = "%systemroot%\Microsoft.NET\Framework\v3.5"
+$exists = Test-Path -Path $netFX3dir
+if ($exists)
+{
+    Write-Host "Success! .NET 3.5 already installed" -ForegroundColor Green
+}else{
+    Write-Host ".Net 3.5 not found, attempting automatic install..." -ForegroundColor Red
+    try {
+        #InstallNetFx3
+        Enable-WindowsOptionalFeature -Online -FeatureName "NetFx3" -All -ErrorAction Stop
+    }
+    catch {
+        $ErrorMessage = $_.Exception.Message
+    }
+    finally {
+        if ($ErrorMessage)
+        {
+            Write-Host "Failure enabling NetFx3 features!" -ForegroundColor Red
+            Write-Host "The error code thrown is:" -ForegroundColor Red
+            Write-Host $ErrorMessage -BackgroundColor  -ForegroundColor DarkRed
+            Write-Host "`n"
+            Write-Host "Please refer to SFDC Knowledgebase article for more info: .NET 3.5 Fails to install due to inability to download source files"
+            Write-Host "Script will now exit. You may re-run the script after enabling .NET 3.5 on this machine."
+            exit
+        }else{
+            Write-Host "Success!  .NET 3.5 installed!" -ForegroundColor Green
+        }
     }
 }
 
+Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow
+GetSQLSource
+Write-Host "`n"
+Write-Host "Please browse to SQL_2012_ServicePack3 folder" -ForegroundColor Yellow
+GetSP3Source
 
-#Checking that SQL install folders exist
-If ($folderCheck1 -eq $false -Or $folderCheck2 -eq $false){
-    Write-Host "SQL 2012 Standard and/or SQL 2012 SP3 folders not found."
-    Write-Host "Please paste those folders from the DynaLync Install Files to the _PLACEHOLDER locations"
+#Checking that SQL install folder functions defined variables correctly before attempting install.
+If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
+    Write-Host "SQL 2012 Standard and/or SQL 2012 SP3 folders not found or something went wrong.  Please exit the script and try again."
     throw
 }
 Else{

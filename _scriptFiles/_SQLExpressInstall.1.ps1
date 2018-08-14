@@ -10,6 +10,7 @@
 #dot-sourcing external functions
 .".\_scriptFiles\Reset-DbaAdmin.ps1"
 .".\_scriptFiles\Set-DbaTcpPort.ps1"
+."..\DotNet3\_scriptFiles\_InstallDotNet3.ps1"
 
 # Instantiate shell object for explorer folder interaction
 $folderObject = New-Object -comObject Shell.Application
@@ -66,28 +67,9 @@ if ($exists)
 {
     Write-Host "Success! .NET 3.5 already installed" -ForegroundColor Green
 }else{
-    Write-Host ".Net 3.5 not found, attempting automatic install..." -ForegroundColor Red
-    try {
-        #InstallNetFx3
-        Enable-WindowsOptionalFeature -Online -FeatureName "NetFx3" -All -ErrorAction Stop
-    }
-    catch {
-        $ErrorMessage = $_.Exception.Message
-    }
-    finally {
-        if ($ErrorMessage)
-        {
-            Write-Host "Failure enabling NetFx3 features!" -ForegroundColor Red
-            Write-Host "The error code thrown is:" -ForegroundColor Red
-            Write-Host $ErrorMessage -BackgroundColor  -ForegroundColor DarkRed
-            Write-Host "`n"
-            Write-Host "Please refer to SFDC Knowledgebase article for more info: .NET 3.5 Fails to install due to inability to download source files"
-            Write-Host "Script will now exit. You may re-run the script after enabling .NET 3.5 on this machine."
-            exit
-        }else{
-            Write-Host "Success!  .NET 3.5 installed!" -ForegroundColor Green
-        }
-    }
+    Write-Host ".Net 3.5 not found, performing automatic install..."
+    InstallDotNet3
+    #Calls InstallDotNet3 function from dot-sourced script via DotNet3 folder.
 }
 
 Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow
@@ -106,7 +88,7 @@ Write-Host $separator
 Write-Host "Beginning SQL 2012 Express Installation..."
 Write-Host $separator
 
-Set-Location -Path ..\SQL_2012_Standard\
+Set-Location -Path $sqlSetupPath
 #Start-Process -FilePath "\.setup.exe" -NoNewWindow -PassThru -ArgumentList $sqlArguments -Wait
 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
 $pinfo.FileName = $PWD.Path + "\setup.exe"

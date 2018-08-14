@@ -1,1 +1,0 @@
-Paste SQL_2012_Standard folder from DynaLync Install Files (330149) to this directory.

@@ -113,7 +113,7 @@ Write-Host "Please reference stderr output above to troubleshoot any potential e
 Write-Host $separator
 
 Write-Host "Installing SQL 2012 Service Pack 3"
-Set-Location -Path ..\SQL_2012_ServicePack3\
+Set-Location -Path $sqlSp3Path
 #Start-Process -FilePath "msiexec.exe" -Verb runas -ArgumentList $sqlSP3Arguments -Wait
 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
 $pinfo.FileName = $PWD.Path + "\SQLServer2012SP3-KB3072779-x64-ENU.exe"

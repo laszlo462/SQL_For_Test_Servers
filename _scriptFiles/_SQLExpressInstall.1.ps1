@@ -105,9 +105,9 @@ if ($exists)
     Write-Host "Success! .NET 3.5 already installed" -ForegroundColor Green
 }else{
     Write-Host ".Net 3.5 not found, performing automatic install..."
-    if (Test-Path -Path ..\..\DotNet3\_scriptFiles)
+    if (Test-Path -Path ..\..\DotNet3)
     {
-        Set-Location ..\..\DotNet3
+        Set-Location ..\..\DotNet3\_scriptFiles
         DotNet3Install
     }else{
         Write-Host "DotNet3 folder not found.  Please make sure you've downloaded the latest version of the LCS Toolbox release!" -ForegroundColor Red

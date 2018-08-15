@@ -11,9 +11,8 @@
 $folderObject = New-Object -comObject Shell.Application
 
 # Initializing variables
-$ErrorActionPreference = Stop
-$scriptFile = $MyInvocation.MyCommand.Definition
-$scriptPath = Split-Path -Parent $scriptFile
+#$scriptFile = $PSScriptRoot
+$scriptPath = $PSScriptRoot
 Set-Location -Path $scriptPath
 $configLocation = $scriptPath + "\2012ExpressConfigurationFile.ini"
 $sqlArguments = '/PID="11111-00000-00000-00000-00000" /ConfigurationFile=' + $configLocation
@@ -88,7 +87,14 @@ if ($exists)
     Write-Host "Success! .NET 3.5 already installed" -ForegroundColor Green
 }else{
     Write-Host ".Net 3.5 not found, performing automatic install..."
-    DotNet3Install
+    if (Test-Path -Path ..\..\DotNet3)
+    {
+        Set-Location ..\..\DotNet3
+        DotNet3Install
+    }else{
+        Write-Host "DotNet3 folder not found.  Please make sure you've downloaded the latest version of the LCS Toolbox release!" -ForegroundColor Red
+        throw "Error, check source files"
+    }
 }
 
 Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow

@@ -71,7 +71,7 @@ function DotNet3Install{
 function SetSQLMixedMode{
     #### Registry key change to switch SQL to mixed-mode auth after install.
     #### This is done to prevent insecure passing of /SAPWD parameter during install script arguments.
-    $registryPath = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.SQLEXPRESS\MSSQLServer"
+    $registryPath = "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.SQLEXPRESS\MSSQLServer"
     $name = "LoginMode"
     $value = "2"
 
@@ -86,6 +86,8 @@ function SetSQLMixedMode{
 
 function SetSQLTCPPort{
     #### Reconfigure TCP port to that of the typical 2012 standard install.
+    .$profile.CurrentUserCurrentHost
+    # Needed to reload current Powershell profile to make the sqlps module available, as it was installed with SQL within the same session.
     Import-Module -DisableNameChecking sqlps
     $MachineObject = New-Object ('Microsoft.SqlServer.Management.Smo.WMI.ManagedComputer') "localhost"
     $instance = $MachineObject.getSmoObject(
@@ -99,6 +101,55 @@ function SetSQLTCPPort{
 
     $tcpPort = $instance.ServerProtocols['Tcp'].IPAddresses['IPALL'].IPAddressProperties['TcpPort'].Value
     Write-Host "TCP Port for IPALL set to" $tcpPort -ForegroundColor Green
+}
+
+function InstallSQL{
+    Set-Location -Path $sqlSetupPath.Trim("setup.exe")
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = $sqlSetupPath
+    $pinfo.RedirectStandardError = $true
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.UseShellExecute = $false
+    $pinfo.Arguments = $sqlArguments
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $pinfo
+    $p.Start() | Out-Null
+    $p.WaitForExit()
+    $stdout = $p.StandardOutput.ReadToEnd()
+    $stderr = $p.StandardError.ReadToEnd()
+    Write-Host "stdout: $stdout"
+    Write-Host "stderr: $stderr"
+    Write-Host "exit code: " + $p.ExitCode
+
+    Write-Host $separator
+    Write-Host "SQL Express installation complete.  Error handling is still WIP!"
+    Write-Host "Exit code of 0 is good"
+    Write-Host "Please reference stderr output above to troubleshoot any potential errors."
+    Write-Host $separator
+}
+
+function InstallSP3{
+    Set-Location -Path $sqlSp3Path.Trim("SQLServer2012SP3-KB3072779-x64-ENU.exe")
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = $sqlSp3Path
+    $pinfo.RedirectStandardError = $true
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.UseShellExecute = $false
+    $pinfo.Arguments = $sqlSP3Arguments
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $pinfo
+    $p.Start() | Out-Null
+    $p.WaitForExit()
+    $stdout = $p.StandardOutput.ReadToEnd()
+    $stderr = $p.StandardError.ReadToEnd()
+    Write-Host "stdout: $stdout"
+    Write-Host "stderr: $stderr"
+    Write-Host "exit code: " + $p.ExitCode
+
+    Write-Host $separator
+    Write-Host "SP3 for SQL 2012 installation complete.  Error handling is still WIP!"
+    Write-Host "Exit code of 3010 is good"
+    Write-Host $separator
 }
 
 Write-Host ".NET 3.5 Prerequisite Check..."
@@ -131,55 +182,11 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     Write-Host $separator
     Write-Host "Beginning SQL 2012 Express Installation..."
     Write-Host $separator
-
-    Set-Location -Path $sqlSetupPath.Trim("setup.exe")
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $sqlSetupPath
-    $pinfo.RedirectStandardError = $true
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = $sqlArguments
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
-    $p.WaitForExit()
-    $stdout = $p.StandardOutput.ReadToEnd()
-    $stderr = $p.StandardError.ReadToEnd()
-    Write-Host "stdout: $stdout"
-    Write-Host "stderr: $stderr"
-    Write-Host "exit code: " + $p.ExitCode
-
-    Write-Host $separator
-    Write-Host "SQL Express installation complete.  Error handling is still WIP!"
-    Write-Host "Exit code of 0 is good"
-    Write-Host "Please reference stderr output above to troubleshoot any potential errors."
-    Write-Host $separator
+    InstallSQL
 
     Write-Host "Installing SQL 2012 Service Pack 3"
-    Set-Location -Path $sqlSp3Path.Trim("SQLServer2012SP3-KB3072779-x64-ENU.exe")
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $sqlSp3Path
-    $pinfo.RedirectStandardError = $true
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = $sqlSP3Arguments
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
-    $p.WaitForExit()
-    $stdout = $p.StandardOutput.ReadToEnd()
-    $stderr = $p.StandardError.ReadToEnd()
-    Write-Host "stdout: $stdout"
-    Write-Host "stderr: $stderr"
-    Write-Host "exit code: " + $p.ExitCode
-
     Write-Host $separator
-    Write-Host "SP3 for SQL 2012 installation complete.  Error handling is still WIP!"
-    Write-Host "Exit code of 3010 is good"
-    #Read-Host "Reboot required, press enter to reboot now..."
-    Write-Host $separator
-    Read-Host "SP3 install complete."
-    Write-Host "`n"
+    InstallSP3
 
     Write-Host "Setting SQL Auth to mixed mode..."
     SetSQLMixedMode
@@ -189,6 +196,8 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     SetSQLTCPPort
     Write-Host "`n"
 
-    Read-Host "SQL Express Test Server installation complete.  Reboot required....press Enter to reboot" -ForegroundColor Yellow
+    Write-Host "*********" -ForegroundColor Green
+    Read-Host "SQL Express Test Server installation complete.  Reboot required....press Enter to reboot"
+    Restart-Computer
     exit
 }

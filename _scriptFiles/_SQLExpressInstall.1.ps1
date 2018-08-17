@@ -20,14 +20,11 @@ $sqlSP3Arguments = '/qs /IAcceptSQLServerLicenseTerms /Action=Patch'
 $separator = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 # Functions
-function GetSQLSource
-{
+function GetSQLSource{
     $pathCheck = $false
-    while($pathCheck -eq $false)
-    {
+    while($pathCheck -eq $false){
         $sqlStandardSource = $folderObject.BrowseForFolder(0, "Please select SQL_2012_Standard folder", 0)
-        if ($sqlStandardSource -ne $null)
-        {
+        if ($sqlStandardSource -ne $null){
             $fullPath = $sqlStandardSource.self.Path + "\*"
             Write-Host "Checking..." $fullPath.Trim("*")
             $pathCheck = Test-Path -Path $fullPath -Include setup.exe
@@ -37,14 +34,11 @@ function GetSQLSource
     Write-Host "SQL 2012 Setup.exe found at " $sqlSetupPath -ForegroundColor Green
 }
 
-function GetSP3Source
-{
+function GetSP3Source{
     $pathCheck = $false
-    while($pathCheck -eq $false)
-    {
+    while($pathCheck -eq $false){
         $sqlSp3Source = $folderObject.BrowseForFolder(0, "Please select SQL_2012_ServicePack3 folder", 0)
-        if ($sqlSp3Source -ne $null)
-        {
+        if ($sqlSp3Source -ne $null){
             $fullPath = $sqlSp3Source.self.Path + "\*"
             Write-Host "Checking..." $fullPath.Trim("*")
             $pathCheck = Test-Path -Path $fullPath -Include SQLServer2012SP3-KB3072779-x64-ENU.exe
@@ -54,8 +48,7 @@ function GetSP3Source
     Write-Host "SQL 2012 SP3 installer found at " $sqlSp3Path -ForegroundColor Green
 }
 
-function DotNet3Install
-{
+function DotNet3Install{
     Write-Host "Installing 7-zip..." -ForegroundColor Green
     Start-Process msiexec.exe -ArgumentList '/i 7z1805-x64.msi /qn' -Wait -NoNewWindow
     Set-Alias 7z "C:\Program Files\7-Zip\7z.exe"
@@ -75,16 +68,14 @@ function DotNet3Install
     Write-Host "`n"
 }
 
-function SetSQLMixedMode
-{
+function SetSQLMixedMode{
     #### Registry key change to switch SQL to mixed-mode auth after install.
     #### This is done to prevent insecure passing of /SAPWD parameter during install script arguments.
     $registryPath = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.SQLEXPRESS\MSSQLServer"
     $name = "LoginMode"
     $value = "2"
 
-    if (Test-Path $registryPath)
-    {
+    if (Test-Path $registryPath){
         New-ItemProperty -Path $registryPath -Name $name -Value $value -PropertyType DWORD -Force | Out-Null
         Write-Host "Complete!" -ForegroundColor Green
         Write-Host "`n"
@@ -113,13 +104,11 @@ function SetSQLTCPPort{
 Write-Host ".NET 3.5 Prerequisite Check..."
 $netFX3dir = "C:\Windows\Microsoft.NET\Framework\v3.5"
 $exists = Test-Path -Path $netFX3dir
-if ($exists)
-{
+if ($exists){
     Write-Host "Success! .NET 3.5 already installed" -ForegroundColor Green
 }else{
     Write-Host ".Net 3.5 not found, performing automatic install..."
-    if (Test-Path -Path ..\..\DotNet3)
-    {
+    if (Test-Path -Path ..\..\DotNet3){
         Set-Location ..\..\DotNet3\_scriptFiles
         DotNet3Install
     }else{
@@ -135,8 +124,7 @@ Write-Host "Please browse to SQL_2012_ServicePack3 folder" -ForegroundColor Yell
 GetSP3Source
 
 #Checking that SQL install folder functions defined variables correctly before attempting install.
-If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null)
-{
+If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     Write-Host "SQL 2012 Standard and/or SQL 2012 SP3 folders not found or something went wrong.  Please exit the script and try again."
     throw
 }Else{

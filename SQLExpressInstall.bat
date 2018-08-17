@@ -23,4 +23,4 @@ echo Press CTRL-C to quit, or ENTER to continue...
 echo:
 pause
 
-powershell -ExecutionPolicy Bypass -Command "Start-Process PowerShell -Verb RunAs -WorkingDirectory %~dp0_scriptFiles -ArgumentList '-file %~dp0_scriptFiles\_SQLExpressInstall.ps1'"
+powershell -ExecutionPolicy Bypass -Command "Start-Process PowerShell -Verb RunAs -WorkingDirectory %~dp0_scriptFiles -ArgumentList '-file %~dp0_scriptFiles\_SQLExpressInstall.1.ps1'"

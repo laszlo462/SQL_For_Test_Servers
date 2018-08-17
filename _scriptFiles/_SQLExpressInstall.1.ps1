@@ -93,6 +93,23 @@ function SetSQLMixedMode
     }
 }
 
+function SetSQLTCPPort{
+    #### Reconfigure TCP port to that of the typical 2012 standard install.
+    Import-Module -DisableNameChecking sqlps
+    $MachineObject = New-Object ('Microsoft.SqlServer.Management.Smo.WMI.ManagedComputer') "localhost"
+    $instance = $MachineObject.getSmoObject(
+        "ManagedComputer[@Name='localhost']/" +
+        "ServerInstance[@Name='SQLEXPRESS']"
+    )
+
+    $instance.ServerProtocols['Tcp'].IPAddresses['IPALL'].IPAddressProperties['TcpPort'].Value = "1433"
+    $instance.ServerProtocols['Tcp'].IPAddresses['IPALL'].IPAddressProperties['TcpDynamicPorts'].Value = ""
+    $instance.ServerProtocols['Tcp'].Alter()
+
+    $tcpPort = $instance.ServerProtocols['Tcp'].IPAddresses['IPALL'].IPAddressProperties['TcpPort'].Value
+    Write-Host "TCP Port for IPALL set to" $tcpPort -ForegroundColor Green
+}
+
 Write-Host ".NET 3.5 Prerequisite Check..."
 $netFX3dir = "C:\Windows\Microsoft.NET\Framework\v3.5"
 $exists = Test-Path -Path $netFX3dir
@@ -173,11 +190,17 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null)
     Write-Host "Exit code of 3010 is good"
     #Read-Host "Reboot required, press enter to reboot now..."
     Write-Host $separator
-    Read-Host "SP3 install complete.  Forgoing required reboot for testing purposes."
+    Read-Host "SP3 install complete."
+    Write-Host "`n"
 
-    Write-Host "Setting SQL Auth to mixed mode..." -ForegroundColor Green
+    Write-Host "Setting SQL Auth to mixed mode..."
     SetSQLMixedMode
-    ####Testing#####Turned off reboot####
-    # Restart-Computer
-    # exit
+    Write-Host "`n"
+
+    Write-Host "Configuring correct TCP Port number"
+    SetSQLTCPPort
+    Write-Host "`n"
+
+    Read-Host "SQL Express Test Server installation complete.  Reboot required....press Enter to reboot" -ForegroundColor Yellow
+    exit
 }

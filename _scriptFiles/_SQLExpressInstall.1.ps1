@@ -19,10 +19,6 @@ $sqlArguments = '/PID="11111-00000-00000-00000-00000" /ConfigurationFile=' + $co
 $sqlSP3Arguments = '/qs /IAcceptSQLServerLicenseTerms /Action=Patch'
 $separator = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
-#dot-sourcing external functions
-."$scriptPath\Reset-DbaAdmin.ps1"
-."$scriptPath\Set-DbaTcpPort.ps1"
-
 # Functions
 function GetSQLSource
 {
@@ -84,7 +80,7 @@ function SetSQLMixedMode
     #### Registry key change to switch SQL to mixed-mode auth after install.
     #### This is done to prevent insecure passing of /SAPWD parameter during install script arguments.
     $registryPath = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.SQLEXPRESS\MSSQLServer"
-    $name = LoginMode
+    $name = "LoginMode"
     $value = "2"
 
     if (Test-Path $registryPath)
@@ -181,16 +177,6 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null)
 
     Write-Host "Setting SQL Auth to mixed mode..." -ForegroundColor Green
     SetSQLMixedMode
-
-    Write-Host "Calling external function to enable SA and reset password..."
-    Reset-DbaAdmin -SqlInstance .\SQLEXPRESS
-    Write-Host "`n"
-
-    Write-Host "Configuring correct default TCP ports" -ForegroundColor Green
-    Set-DbaTcpPort -SqlInstance .\SQLEXPRESS -Port 1433
-    Write-Host "`n"
-
-
     ####Testing#####Turned off reboot####
     # Restart-Computer
     # exit

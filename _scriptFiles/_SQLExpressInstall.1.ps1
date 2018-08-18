@@ -170,7 +170,7 @@ Write-Host "Please browse to SQL_2012_ServicePack3 folder" -ForegroundColor Yell
 GetSP3Source
 Write-Host "`n"
 
-Write-Host ".NET 3.5 Prerequisite Check..."
+Write-Host ".NET 3.5 Prerequisite Check..." -ForegroundColor Yellow
 $netFX3dir = "C:\Windows\Microsoft.NET\Framework\v3.5"
 $exists = Test-Path -Path $netFX3dir
 if ($exists){

@@ -162,6 +162,13 @@ function ScriptLoad{
 # Begin Script
 
 ScriptLoad
+Write-Host "`n"
+Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow
+GetSQLSource
+Write-Host "`n"
+Write-Host "Please browse to SQL_2012_ServicePack3 folder" -ForegroundColor Yellow
+GetSP3Source
+Write-Host "`n"
 
 Write-Host ".NET 3.5 Prerequisite Check..."
 $netFX3dir = "C:\Windows\Microsoft.NET\Framework\v3.5"
@@ -178,12 +185,6 @@ if ($exists){
         throw "Error, check source files"
     }
 }
-
-Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow
-GetSQLSource
-Write-Host "`n"
-Write-Host "Please browse to SQL_2012_ServicePack3 folder" -ForegroundColor Yellow
-GetSP3Source
 
 #Checking that SQL install folder functions defined variables correctly before attempting install.
 If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){

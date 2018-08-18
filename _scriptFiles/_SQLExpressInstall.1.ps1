@@ -86,7 +86,7 @@ function SetSQLMixedMode{
 
 function SetSQLTCPPort{
     #### Reconfigure TCP port to that of the typical 2012 standard install.
-    .$profile.CurrentUserCurrentHost
+    #.$profile.CurrentUserCurrentHost
     # Needed to reload current Powershell profile to make the sqlps module available, as it was installed with SQL within the same session.
     Import-Module -DisableNameChecking sqlps
     $MachineObject = New-Object ('Microsoft.SqlServer.Management.Smo.WMI.ManagedComputer') "localhost"
@@ -152,6 +152,17 @@ function InstallSP3{
     Write-Host $separator
 }
 
+function ScriptLoad{
+    Write-Host "#"
+    Write-Host "##"
+    Write-Host "###"
+    Write-Host "####"
+}
+
+# Begin Script
+
+ScriptLoad
+
 Write-Host ".NET 3.5 Prerequisite Check..."
 $netFX3dir = "C:\Windows\Microsoft.NET\Framework\v3.5"
 $exists = Test-Path -Path $netFX3dir
@@ -192,8 +203,11 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     SetSQLMixedMode
     Write-Host "`n"
 
+    # Create New PSSession locally so SetSQLTCPPort function is able to Import-Module that's not available within this session.
+    $session = New-PSSession
     Write-Host "Configuring correct TCP Port number"
-    SetSQLTCPPort
+    Invoke-Command -Session $session {SetSQLTCPPort}
+    #SetSQLTCPPort
     Write-Host "`n"
 
     Write-Host "*********" -ForegroundColor Green

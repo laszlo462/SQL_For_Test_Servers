@@ -206,7 +206,7 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     # Create New PSSession locally so SetSQLTCPPort function is able to Import-Module that's not available within this session.
     $session = New-PSSession
     Write-Host "Configuring correct TCP Port number"
-    Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort:}
+    Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort}
     #SetSQLTCPPort
     Write-Host "`n"
 

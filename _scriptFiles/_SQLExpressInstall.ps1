@@ -215,8 +215,8 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     Write-Host "`n"
 
     Write-Host "*********" -ForegroundColor Green
-    Read-Host "SQL Express Test Server installation complete.  Reboot required....press Enter to reboot"
     Stop-Transcript
+    Read-Host "SQL Express Test Server installation complete.  Reboot required....press Enter to reboot"
     Restart-Computer
     exit
 }

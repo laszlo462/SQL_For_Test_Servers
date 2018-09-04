@@ -92,8 +92,11 @@ function Get-ProductType{
         if ($RadioButton1.Checked){$productType = "1"}
         elseif ($RadioButton2.Checked){$productType = "2"}
         elseif ($RadioButton3.Checked){$productType = "3"}
+        return $productType
         }
-    return $productType
+        if ($dialogResult -eq "Cancel"){
+            throw "User selected cancel"
+        }
 }
 
 function GetSQLSource{
@@ -236,37 +239,27 @@ function InstallSP3{
     Write-Host $separator
 }
 
-function ScriptLoad{
-    Write-Host "#"
-    Write-Host "##"
-    Write-Host "###"
-    Write-Host "####"
+function Set-DLLDatabases($scriptPath){
+    Import-Module -DisableNameChecking sqlps
+    Set-Location -Path $scriptPath
+    Invoke-Sqlcmd -InputFile ".\create_DLL_Databases.sql"
+    Write-Host "The following databases have been created:"
+    Invoke-Sqlcmd -Query "USE Master; SELECT name, database_id, create_date FROM sys.databases WHERE database_id > 4;"
 }
 
-function Set-DLLDatabases{
-    [CmdletBinding()]
-    Param()
+function Set-DLIDatabases($scriptPath){
     Import-Module -DisableNameChecking sqlps
-    Invoke-Sqlcmd -InputFile ".\create_DLL_Databases.sql" -Verbose
+    Set-Location -Path $scriptPath
+    Invoke-Sqlcmd -InputFile ".\create_DLI_Databases.sql"
     Write-Host "The following databases have been created:"
-    Invoke-Sqlcmd -Query "SELECT name, database_id, create_date FROM sys.databases; GO" -Verbose
-}
-
-function Set-DLIDatabases{
-    [CmdletBinding()]
-    Param()
-    Import-Module -DisableNameChecking sqlps
-    Invoke-Sqlcmd -InputFile ".\create_DLI_Databases.sql" -Verbose
-    Write-Host "The following databases have been created:"
-    Invoke-Sqlcmd -Query "SELECT name, database_id, create_date FROM sys.databases; GO" -Verbose
+    Invoke-Sqlcmd -Query "USE Master; SELECT name, database_id, create_date FROM sys.databases WHERE database_id > 4;"
 }
 
 # Begin Script
 Start-Transcript -Path $logfile
-ScriptLoad
 Write-Host "`n"
 Write-Host "Please select the product that this test server will be used for:" -ForegroundColor Yellow
-Get-ProductType
+$productType = Get-ProductType
 Write-Host "`n"
 Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow
 GetSQLSource
@@ -310,14 +303,14 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     # Create New PSSession locally so SetSQLTCPPort function is able to Import-Module that's not available within this session.
     $session = New-PSSession
     Write-Host "Configuring databases for product type..."
-
     Write-Host "`n"
     switch ($productType){
-        "1" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLLDatabases}; break}
-        "2" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLIDatabases}; break}
-        "3" {SetSQLMixedMode; break}
+        1 {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLLDatabases} -ArgumentList $scriptPath; break}
+        2 {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLIDatabases} -ArgumentList $scriptPath; break}
+        3 {SetSQLMixedMode; break}
     }
     Write-Host "Configuring correct TCP Port number"
+    $session = New-PSSession
     Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort}
     Stop-Transcript
     Write-Host "`n"

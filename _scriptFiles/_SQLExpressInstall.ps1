@@ -20,8 +20,16 @@ $sqlArguments = '/PID="11111-00000-00000-00000-00000" /ConfigurationFile=' + $co
 $sqlSP3Arguments = '/qs /IAcceptSQLServerLicenseTerms /Action=Patch'
 $separator = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 $logfile = "C:\Service\SQL-Test-Server-Install-$(get-date -f yyyyMMddTHHmmss).txt"
+$productType
 
+# Dot Sourcing PS-Menu functions
+. ".\ps-menu.psm1"
 # Functions
+function Set-ProductType{
+    [CmdletBinding()]
+    Param($productType)
+    $productType = menu @("DynaLync Lung", "Incidental", "IBE B.08")
+}
 function GetSQLSource{
     $pathCheck = $false
     while($pathCheck -eq $false){

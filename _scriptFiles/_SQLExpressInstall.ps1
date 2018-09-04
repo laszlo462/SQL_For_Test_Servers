@@ -25,6 +25,82 @@ $productType
 Import-Module -DisableNameChecking -Name .\ps-menu.psm1
 
 # Functions
+function Get-ProductType{
+    [CmdletBinding()]
+    Param($productType)
+    $Form = New-Object system.Windows.Forms.Form
+    $Form.width = 500
+    $Form.height = 300
+    $Form.Text = "Please select the product this server will be used for"
+    $Font = New-Object System.Drawing.Font("Times New Roman", 12)
+    $Form.Font = $Font
+    $MyGroupBox = New-Object System.Windows.Forms.GroupBox
+    $MyGroupBox.Location = '40,30'
+    $MyGroupBox.size = '400,150'
+    $MyGroupBox.text = "Please select the product this server will be used for:"
+
+        # Create the collection of radio buttons
+    $RadioButton1 = New-Object System.Windows.Forms.RadioButton
+    $RadioButton1.Location = '20,40'
+    $RadioButton1.size = '350,20'
+    $RadioButton1.Checked = $false 
+    $RadioButton1.Text = "DynaLync Lung"
+ 
+    $RadioButton2 = New-Object System.Windows.Forms.RadioButton
+    $RadioButton2.Location = '20,70'
+    $RadioButton2.size = '350,20'
+    $RadioButton2.Checked = $false
+    $RadioButton2.Text = "Incidentals"
+ 
+    $RadioButton3 = New-Object System.Windows.Forms.RadioButton
+    $RadioButton3.Location = '20,100'
+    $RadioButton3.size = '350,20'
+    $RadioButton3.Checked = $false
+    $RadioButton3.Text = "IBE B.08"
+
+        # Add an OK button
+    # Thanks to J.Vierra for simplifing the use of buttons in forms
+    $OKButton = new-object System.Windows.Forms.Button
+    $OKButton.Location = '130,200'
+    $OKButton.Size = '100,40' 
+    $OKButton.Text = 'OK'
+    $OKButton.DialogResult=[System.Windows.Forms.DialogResult]::OK
+ 
+    #Add a cancel button
+    $CancelButton = new-object System.Windows.Forms.Button
+    $CancelButton.Location = '255,200'
+    $CancelButton.Size = '100,40'
+    $CancelButton.Text = "Cancel"
+    $CancelButton.DialogResult=[System.Windows.Forms.DialogResult]::Cancel
+ 
+    # Add all the Form controls on one line 
+    $form.Controls.AddRange(@($MyGroupBox,$OKButton,$CancelButton))
+ 
+    # Add all the GroupBox controls on one line
+    $MyGroupBox.Controls.AddRange(@($Radiobutton1,$RadioButton2,$RadioButton3))
+    
+    # Assign the Accept and Cancel options in the form to the corresponding buttons
+    $form.AcceptButton = $OKButton
+    $form.CancelButton = $CancelButton
+ 
+    # Activate the form
+    $form.Add_Shown({$form.Activate()})    
+    
+    # Get the results from the button click
+    $dialogResult = $form.ShowDialog()
+ 
+    # If the OK button is selected
+    if ($dialogResult -eq "OK"){
+        
+        # Check the current state of each radio button and respond accordingly
+        if ($RadioButton1.Checked){
+           Set-Variable -Name productType -Value "1"
+        elseif ($RadioButton2.Checked){
+            Set-Variable -Name productType -Value "2"}
+        elseif ($RadioButton3.Checked = $true){Set-Variable -Name productType -Value "3"}
+        }
+    }
+}
 function Set-ProductType{
     [CmdletBinding()]
     Param($productType)
@@ -205,7 +281,7 @@ Start-Transcript -Path $logfile
 ScriptLoad
 Write-Host "`n"
 Write-Host "Please select the product that this test server will be used for:" -ForegroundColor Yellow
-Set-ProductType
+Get-ProductType
 Write-Host "`n"
 Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow
 GetSQLSource
@@ -249,11 +325,12 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     # Create New PSSession locally so SetSQLTCPPort function is able to Import-Module that's not available within this session.
     $session = New-PSSession
     Write-Host "Configuring databases for product type..."
+    Stop-Transcript
     Write-Host "`n"
     switch ($productType){
-        "DynaLync Lung" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLLDatabases}; break}
-        "Incidental" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLIDatabases}; break}
-        "IBE B.08"{Write-Host "Setting SQL Auth to mixed mode..."
+        "1" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLLDatabases($logfile)}; break}
+        "2" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLIDatabases($logfile)}; break}
+        "3"{Write-Host "Setting SQL Auth to mixed mode..."
         SetSQLMixedMode
         Write-Host "`n"
         }
@@ -261,7 +338,7 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     Start-Transcript -Path $logfile -Append
     Write-Host "Configuring correct TCP Port number"
     Stop-Transcript
-    Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort}
+    Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort($logfile)}
     Write-Host "`n"
 
     Write-Host "*********" -ForegroundColor Green

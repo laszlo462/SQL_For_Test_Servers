@@ -21,8 +21,9 @@ $separator = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 $logfile = "C:\Service\SQL-Test-Server-Install-$(get-date -f yyyyMMddTHHmmss).txt"
 $productType
 
-# Dot Sourcing PS-Menu functions
-. ".\ps-menu.psm1"
+# Import ps-menu module
+Import-Module -DisableNameChecking -Name .\ps-menu.psm1
+
 # Functions
 function Set-ProductType{
     [CmdletBinding()]
@@ -33,7 +34,10 @@ function GetSQLSource{
     $pathCheck = $false
     while($pathCheck -eq $false){
         $sqlStandardSource = $folderObject.BrowseForFolder(0, "Please select SQL_2012_Standard folder", 0)
-        if ($sqlStandardSource -ne $null){
+        if ($sqlStandardSource -eq $null){
+            throw "User pressed cancel..."
+        }
+        elseif ($sqlStandardSource -ne $null){
             $fullPath = $sqlStandardSource.self.Path + "\*"
             Write-Host "Checking..." $fullPath.Trim("*")
             $pathCheck = Test-Path -Path $fullPath -Include setup.exe
@@ -47,7 +51,10 @@ function GetSP3Source{
     $pathCheck = $false
     while($pathCheck -eq $false){
         $sqlSp3Source = $folderObject.BrowseForFolder(0, "Please select SQL_2012_ServicePack3 folder", 0)
-        if ($sqlSp3Source -ne $null){
+        if ($sqlSp3Source -eq $null){
+            throw "User pressed cancel..."
+        }
+        elseif ($sqlSp3Source -ne $null){
             $fullPath = $sqlSp3Source.self.Path + "\*"
             Write-Host "Checking..." $fullPath.Trim("*")
             $pathCheck = Test-Path -Path $fullPath -Include SQLServer2012SP3-KB3072779-x64-ENU.exe
@@ -181,14 +188,15 @@ function Set-DLIDatabases{
 Start-Transcript -Path $logfile
 ScriptLoad
 Write-Host "`n"
+Write-Host "Please select the product that this test server will be used for:" -ForegroundColor Yellow
+Set-ProductType
+Write-Host "`n"
 Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow
 GetSQLSource
 Write-Host "`n"
 Write-Host "Please browse to SQL_2012_ServicePack3 folder" -ForegroundColor Yellow
 GetSP3Source
 Write-Host "`n"
-Write-Host "Please select the product that this test server will be used for:" -ForegroundColor Yellow
-Set-ProductType
 
 Write-Host ".NET 3.5 Prerequisite Check..." -ForegroundColor Yellow
 $netFX3dir = "C:\Windows\Microsoft.NET\Framework\v3.5"

@@ -101,6 +101,8 @@ function SetSQLMixedMode{
 }
 
 function SetSQLTCPPort{
+    [CmdletBinding()]
+    Param($logfile)
     #### Reconfigure TCP port to that of the typical 2012 standard install.
     # Needed to reload current Powershell profile to make the sqlps module available, as it was installed with SQL within the same session.
     Start-Transcript -Path $logfile -Append
@@ -177,11 +179,25 @@ function ScriptLoad{
 }
 
 function Set-DLLDatabases{
+    [CmdletBinding()]
+    Param($logfile)
+    Start-Transcript -Path $logfile -Append
+    Import-Module -DisableNameChecking sqlps
     Invoke-Sqlcmd -InputFile ".\create_DLL_Databases.sql" -Verbose
+    Write-Host "The following databases have been created:"
+    Invoke-Sqlcmd -Query "SELECT name, database_id, create_date FROM sys.databases; GO" -Verbose
+    Stop-Transcript
 }
 
 function Set-DLIDatabases{
+    [CmdletBinding()]
+    Param($logfile)
+    Start-Transcript -Path $logfile -Append
+    Import-Module -DisableNameChecking sqlps
     Invoke-Sqlcmd -InputFile ".\create_DLI_Databases.sql" -Verbose
+    Write-Host "The following databases have been created:"
+    Invoke-Sqlcmd -Query "SELECT name, database_id, create_date FROM sys.databases; GO" -Verbose
+    Stop-Transcript
 }
 
 # Begin Script
@@ -232,24 +248,22 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
 
     # Create New PSSession locally so SetSQLTCPPort function is able to Import-Module that's not available within this session.
     $session = New-PSSession
-    Write-Host "Configuring correct TCP Port number"
-    Stop-Transcript
-    Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort}
-    Write-Host "`n"
-
-    Start-Transcript -Path $logfile -Append
     Write-Host "Configuring databases for product type..."
     Write-Host "`n"
     switch ($productType){
-        "DynaLync Lung" {Set-DLLDatabases; break}
-        "Incidental" {Set-DLIDatabases; break}
+        "DynaLync Lung" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLLDatabases}; break}
+        "Incidental" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLIDatabases}; break}
         "IBE B.08"{Write-Host "Setting SQL Auth to mixed mode..."
         SetSQLMixedMode
         Write-Host "`n"
         }
     }
-
+    Start-Transcript -Path $logfile -Append
+    Write-Host "Configuring correct TCP Port number"
     Stop-Transcript
+    Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort}
+    Write-Host "`n"
+
     Write-Host "*********" -ForegroundColor Green
     Read-Host "SQL Express Test Server installation complete.  Reboot required....press Enter to reboot"
     Restart-Computer

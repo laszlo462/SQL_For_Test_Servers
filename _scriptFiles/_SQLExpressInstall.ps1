@@ -21,9 +21,6 @@ $separator = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 $logfile = "C:\Service\SQL-Test-Server-Install-$(get-date -f yyyyMMddTHHmmss).txt"
 $productType
 
-# Import ps-menu module
-Import-Module -DisableNameChecking -Name .\ps-menu.psm1
-
 # Functions
 function Get-ProductType{
     [CmdletBinding()]
@@ -45,67 +42,60 @@ function Get-ProductType{
     $RadioButton1.size = '350,20'
     $RadioButton1.Checked = $false 
     $RadioButton1.Text = "DynaLync Lung"
- 
+
     $RadioButton2 = New-Object System.Windows.Forms.RadioButton
     $RadioButton2.Location = '20,70'
     $RadioButton2.size = '350,20'
     $RadioButton2.Checked = $false
     $RadioButton2.Text = "Incidentals"
- 
+
     $RadioButton3 = New-Object System.Windows.Forms.RadioButton
     $RadioButton3.Location = '20,100'
     $RadioButton3.size = '350,20'
     $RadioButton3.Checked = $false
     $RadioButton3.Text = "IBE B.08"
 
-        # Add an OK button
+    # Add an OK button
     # Thanks to J.Vierra for simplifing the use of buttons in forms
     $OKButton = new-object System.Windows.Forms.Button
     $OKButton.Location = '130,200'
     $OKButton.Size = '100,40' 
     $OKButton.Text = 'OK'
     $OKButton.DialogResult=[System.Windows.Forms.DialogResult]::OK
- 
+
     #Add a cancel button
     $CancelButton = new-object System.Windows.Forms.Button
     $CancelButton.Location = '255,200'
     $CancelButton.Size = '100,40'
     $CancelButton.Text = "Cancel"
     $CancelButton.DialogResult=[System.Windows.Forms.DialogResult]::Cancel
- 
+
     # Add all the Form controls on one line 
     $form.Controls.AddRange(@($MyGroupBox,$OKButton,$CancelButton))
- 
+
     # Add all the GroupBox controls on one line
     $MyGroupBox.Controls.AddRange(@($Radiobutton1,$RadioButton2,$RadioButton3))
-    
+
     # Assign the Accept and Cancel options in the form to the corresponding buttons
     $form.AcceptButton = $OKButton
     $form.CancelButton = $CancelButton
- 
+
     # Activate the form
-    $form.Add_Shown({$form.Activate()})    
-    
+    $form.Add_Shown({$form.Activate()})
+
     # Get the results from the button click
     $dialogResult = $form.ShowDialog()
- 
+
     # If the OK button is selected
     if ($dialogResult -eq "OK"){
-        
         # Check the current state of each radio button and respond accordingly
-        if ($RadioButton1.Checked){
-           Set-Variable -Name productType -Value "1"
-        elseif ($RadioButton2.Checked){
-            Set-Variable -Name productType -Value "2"}
-        elseif ($RadioButton3.Checked = $true){Set-Variable -Name productType -Value "3"}
+        if ($RadioButton1.Checked){$productType = "1"}
+        elseif ($RadioButton2.Checked){$productType = "2"}
+        elseif ($RadioButton3.Checked){$productType = "3"}
         }
-    }
+    return $productType
 }
-function Set-ProductType{
-    [CmdletBinding()]
-    Param($productType)
-    $productType = menu @("DynaLync Lung", "Incidental", "IBE B.08")
-}
+
 function GetSQLSource{
     $pathCheck = $false
     while($pathCheck -eq $false){
@@ -161,6 +151,7 @@ function DotNet3Install{
 }
 
 function SetSQLMixedMode{
+    Write-Host "Setting SQL Auth to mixed mode"
     #### Registry key change to switch SQL to mixed-mode auth after install.
     #### This is done to prevent insecure passing of /SAPWD parameter during install script arguments.
     $registryPath = "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.SQLEXPRESS\MSSQLServer"
@@ -178,10 +169,9 @@ function SetSQLMixedMode{
 
 function SetSQLTCPPort{
     [CmdletBinding()]
-    Param($logfile)
+    Param()
     #### Reconfigure TCP port to that of the typical 2012 standard install.
     # Needed to reload current Powershell profile to make the sqlps module available, as it was installed with SQL within the same session.
-    Start-Transcript -Path $logfile -Append
     Import-Module -DisableNameChecking sqlps
     $MachineObject = New-Object ('Microsoft.SqlServer.Management.Smo.WMI.ManagedComputer') "localhost"
     $instance = $MachineObject.getSmoObject(
@@ -195,7 +185,6 @@ function SetSQLTCPPort{
 
     $tcpPort = $instance.ServerProtocols['Tcp'].IPAddresses['IPALL'].IPAddressProperties['TcpPort'].Value
     Write-Host "TCP Port for IPALL set to" $tcpPort -ForegroundColor Green
-    Stop-Transcript
 }
 
 function InstallSQL{
@@ -256,24 +245,20 @@ function ScriptLoad{
 
 function Set-DLLDatabases{
     [CmdletBinding()]
-    Param($logfile)
-    Start-Transcript -Path $logfile -Append
+    Param()
     Import-Module -DisableNameChecking sqlps
     Invoke-Sqlcmd -InputFile ".\create_DLL_Databases.sql" -Verbose
     Write-Host "The following databases have been created:"
     Invoke-Sqlcmd -Query "SELECT name, database_id, create_date FROM sys.databases; GO" -Verbose
-    Stop-Transcript
 }
 
 function Set-DLIDatabases{
     [CmdletBinding()]
-    Param($logfile)
-    Start-Transcript -Path $logfile -Append
+    Param()
     Import-Module -DisableNameChecking sqlps
     Invoke-Sqlcmd -InputFile ".\create_DLI_Databases.sql" -Verbose
     Write-Host "The following databases have been created:"
     Invoke-Sqlcmd -Query "SELECT name, database_id, create_date FROM sys.databases; GO" -Verbose
-    Stop-Transcript
 }
 
 # Begin Script
@@ -325,20 +310,16 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     # Create New PSSession locally so SetSQLTCPPort function is able to Import-Module that's not available within this session.
     $session = New-PSSession
     Write-Host "Configuring databases for product type..."
-    Stop-Transcript
+
     Write-Host "`n"
     switch ($productType){
-        "1" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLLDatabases($logfile)}; break}
-        "2" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLIDatabases($logfile)}; break}
-        "3"{Write-Host "Setting SQL Auth to mixed mode..."
-        SetSQLMixedMode
-        Write-Host "`n"
-        }
+        "1" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLLDatabases}; break}
+        "2" {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLIDatabases}; break}
+        "3" {SetSQLMixedMode; break}
     }
-    Start-Transcript -Path $logfile -Append
     Write-Host "Configuring correct TCP Port number"
+    Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort}
     Stop-Transcript
-    Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort($logfile)}
     Write-Host "`n"
 
     Write-Host "*********" -ForegroundColor Green

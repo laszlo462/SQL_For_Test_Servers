@@ -1,0 +1,6 @@
+USE master;
+GO
+CREATE DATABASE DynaLyncLung;
+CREATE DATABASE HapiFhirDb;
+CREATE DATABASE IdentityLocater;
+GO

@@ -12,7 +12,6 @@ Param()
 $folderObject = New-Object -comObject Shell.Application
 
 # Initializing variables
-#$scriptFile = $PSScriptRoot
 $scriptPath = $PSScriptRoot
 Set-Location -Path $scriptPath
 $configLocation = $scriptPath + "\2012ExpressConfigurationFile.ini"
@@ -96,8 +95,8 @@ function SetSQLMixedMode{
 
 function SetSQLTCPPort{
     #### Reconfigure TCP port to that of the typical 2012 standard install.
-    #.$profile.CurrentUserCurrentHost
     # Needed to reload current Powershell profile to make the sqlps module available, as it was installed with SQL within the same session.
+    Start-Transcript -Path $logfile -Append
     Import-Module -DisableNameChecking sqlps
     $MachineObject = New-Object ('Microsoft.SqlServer.Management.Smo.WMI.ManagedComputer') "localhost"
     $instance = $MachineObject.getSmoObject(
@@ -111,6 +110,7 @@ function SetSQLTCPPort{
 
     $tcpPort = $instance.ServerProtocols['Tcp'].IPAddresses['IPALL'].IPAddressProperties['TcpPort'].Value
     Write-Host "TCP Port for IPALL set to" $tcpPort -ForegroundColor Green
+    Stop-Transcript
 }
 
 function InstallSQL{
@@ -169,6 +169,14 @@ function ScriptLoad{
     Write-Host "####"
 }
 
+function Set-DLLDatabases{
+    Invoke-Sqlcmd -InputFile ".\create_DLL_Databases.sql" -Verbose
+}
+
+function Set-DLIDatabases{
+    Invoke-Sqlcmd -InputFile ".\create_DLI_Databases.sql" -Verbose
+}
+
 # Begin Script
 Start-Transcript -Path $logfile
 ScriptLoad
@@ -179,6 +187,8 @@ Write-Host "`n"
 Write-Host "Please browse to SQL_2012_ServicePack3 folder" -ForegroundColor Yellow
 GetSP3Source
 Write-Host "`n"
+Write-Host "Please select the product that this test server will be used for:" -ForegroundColor Yellow
+Set-ProductType
 
 Write-Host ".NET 3.5 Prerequisite Check..." -ForegroundColor Yellow
 $netFX3dir = "C:\Windows\Microsoft.NET\Framework\v3.5"
@@ -208,22 +218,31 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     Write-Host $separator
     InstallSQL
 
-    Write-Host "Installing SQL 2012 Service Pack 3"
+    Write-Host "Installing SQL 2012 Service Pack 3..."
     Write-Host $separator
     InstallSP3
 
-    Write-Host "Setting SQL Auth to mixed mode..."
-    SetSQLMixedMode
-    Write-Host "`n"
     # Create New PSSession locally so SetSQLTCPPort function is able to Import-Module that's not available within this session.
     $session = New-PSSession
     Write-Host "Configuring correct TCP Port number"
+    Stop-Transcript
     Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort}
-    #SetSQLTCPPort
     Write-Host "`n"
 
-    Write-Host "*********" -ForegroundColor Green
+    Start-Transcript -Path $logfile -Append
+    Write-Host "Configuring databases for product type..."
+    Write-Host "`n"
+    switch ($productType){
+        "DynaLync Lung" {Set-DLLDatabases; break}
+        "Incidental" {Set-DLIDatabases; break}
+        "IBE B.08"{Write-Host "Setting SQL Auth to mixed mode..."
+        SetSQLMixedMode
+        Write-Host "`n"
+        }
+    }
+
     Stop-Transcript
+    Write-Host "*********" -ForegroundColor Green
     Read-Host "SQL Express Test Server installation complete.  Reboot required....press Enter to reboot"
     Restart-Computer
     exit

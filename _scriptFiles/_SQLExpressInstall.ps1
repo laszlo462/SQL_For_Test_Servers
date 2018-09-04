@@ -2,7 +2,8 @@
 # Date: 07/18/2018
 # Installs SQL Server 2012 Express as per IBE defaults + Service Pack 3, for IBE test server deployment.
 # Version 2.0 - 081018
-
+[CmdletBinding()]
+Param()
 # Loading assemblies for Windows Forms
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
@@ -18,6 +19,7 @@ $configLocation = $scriptPath + "\2012ExpressConfigurationFile.ini"
 $sqlArguments = '/PID="11111-00000-00000-00000-00000" /ConfigurationFile=' + $configLocation
 $sqlSP3Arguments = '/qs /IAcceptSQLServerLicenseTerms /Action=Patch'
 $separator = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+$logfile = "C:\Service\SQL-Test-Server-Install-$(get-date -f yyyyMMddTHHmmss).txt"
 
 # Functions
 function GetSQLSource{
@@ -160,7 +162,7 @@ function ScriptLoad{
 }
 
 # Begin Script
-
+Start-Transcript -Path $logfile
 ScriptLoad
 Write-Host "`n"
 Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow
@@ -183,12 +185,14 @@ if ($exists){
     }else{
         Write-Host "DotNet3 folder not found.  Please make sure you've downloaded the latest version of the LCS Toolbox release!" -ForegroundColor Red
         throw "Error, check source files"
+        Stop-Transcript
     }
 }
 
 #Checking that SQL install folder functions defined variables correctly before attempting install.
 If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     Write-Host "SQL 2012 Standard and/or SQL 2012 SP3 folders not found or something went wrong.  Please exit the script and try again."
+    Stop-Transcript
     throw
 }Else{
     Write-Host $separator
@@ -203,7 +207,6 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     Write-Host "Setting SQL Auth to mixed mode..."
     SetSQLMixedMode
     Write-Host "`n"
-
     # Create New PSSession locally so SetSQLTCPPort function is able to Import-Module that's not available within this session.
     $session = New-PSSession
     Write-Host "Configuring correct TCP Port number"
@@ -212,6 +215,7 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     Write-Host "`n"
 
     Write-Host "*********" -ForegroundColor Green
+    Stop-Transcript
     Read-Host "SQL Express Test Server installation complete.  Reboot required....press Enter to reboot"
     Restart-Computer
     exit

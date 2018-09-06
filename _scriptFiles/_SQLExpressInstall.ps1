@@ -12,7 +12,6 @@ Param()
 $folderObject = New-Object -comObject Shell.Application
 
 # Initializing variables
-#$scriptFile = $PSScriptRoot
 $scriptPath = $PSScriptRoot
 Set-Location -Path $scriptPath
 $configLocation = $scriptPath + "\2012ExpressConfigurationFile.ini"
@@ -20,13 +19,94 @@ $sqlArguments = '/PID="11111-00000-00000-00000-00000" /ConfigurationFile=' + $co
 $sqlSP3Arguments = '/qs /IAcceptSQLServerLicenseTerms /Action=Patch'
 $separator = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 $logfile = "C:\Service\SQL-Test-Server-Install-$(get-date -f yyyyMMddTHHmmss).txt"
+$productType
 
 # Functions
+function Get-ProductType{
+    [CmdletBinding()]
+    Param($productType)
+    $Form = New-Object system.Windows.Forms.Form
+    $Form.width = 500
+    $Form.height = 300
+    $Form.Text = "Please select the product this server will be used for"
+    $Font = New-Object System.Drawing.Font("Times New Roman", 12)
+    $Form.Font = $Font
+    $MyGroupBox = New-Object System.Windows.Forms.GroupBox
+    $MyGroupBox.Location = '40,30'
+    $MyGroupBox.size = '400,150'
+    $MyGroupBox.text = "Please select the product this server will be used for:"
+
+        # Create the collection of radio buttons
+    $RadioButton1 = New-Object System.Windows.Forms.RadioButton
+    $RadioButton1.Location = '20,40'
+    $RadioButton1.size = '350,20'
+    $RadioButton1.Checked = $false 
+    $RadioButton1.Text = "DynaLync Lung"
+
+    $RadioButton2 = New-Object System.Windows.Forms.RadioButton
+    $RadioButton2.Location = '20,70'
+    $RadioButton2.size = '350,20'
+    $RadioButton2.Checked = $false
+    $RadioButton2.Text = "Incidentals"
+
+    $RadioButton3 = New-Object System.Windows.Forms.RadioButton
+    $RadioButton3.Location = '20,100'
+    $RadioButton3.size = '350,20'
+    $RadioButton3.Checked = $false
+    $RadioButton3.Text = "IBE B.08"
+
+    # Add an OK button
+    # Thanks to J.Vierra for simplifing the use of buttons in forms
+    $OKButton = new-object System.Windows.Forms.Button
+    $OKButton.Location = '130,200'
+    $OKButton.Size = '100,40' 
+    $OKButton.Text = 'OK'
+    $OKButton.DialogResult=[System.Windows.Forms.DialogResult]::OK
+
+    #Add a cancel button
+    $CancelButton = new-object System.Windows.Forms.Button
+    $CancelButton.Location = '255,200'
+    $CancelButton.Size = '100,40'
+    $CancelButton.Text = "Cancel"
+    $CancelButton.DialogResult=[System.Windows.Forms.DialogResult]::Cancel
+
+    # Add all the Form controls on one line 
+    $form.Controls.AddRange(@($MyGroupBox,$OKButton,$CancelButton))
+
+    # Add all the GroupBox controls on one line
+    $MyGroupBox.Controls.AddRange(@($Radiobutton1,$RadioButton2,$RadioButton3))
+
+    # Assign the Accept and Cancel options in the form to the corresponding buttons
+    $form.AcceptButton = $OKButton
+    $form.CancelButton = $CancelButton
+
+    # Activate the form
+    $form.Add_Shown({$form.Activate()})
+
+    # Get the results from the button click
+    $dialogResult = $form.ShowDialog()
+
+    # If the OK button is selected
+    if ($dialogResult -eq "OK"){
+        # Check the current state of each radio button and respond accordingly
+        if ($RadioButton1.Checked){$productType = "1"}
+        elseif ($RadioButton2.Checked){$productType = "2"}
+        elseif ($RadioButton3.Checked){$productType = "3"}
+        return $productType
+        }
+        if ($dialogResult -eq "Cancel"){
+            throw "User selected cancel"
+        }
+}
+
 function GetSQLSource{
     $pathCheck = $false
     while($pathCheck -eq $false){
         $sqlStandardSource = $folderObject.BrowseForFolder(0, "Please select SQL_2012_Standard folder", 0)
-        if ($sqlStandardSource -ne $null){
+        if ($sqlStandardSource -eq $null){
+            throw "User pressed cancel..."
+        }
+        elseif ($sqlStandardSource -ne $null){
             $fullPath = $sqlStandardSource.self.Path + "\*"
             Write-Host "Checking..." $fullPath.Trim("*")
             $pathCheck = Test-Path -Path $fullPath -Include setup.exe
@@ -40,7 +120,10 @@ function GetSP3Source{
     $pathCheck = $false
     while($pathCheck -eq $false){
         $sqlSp3Source = $folderObject.BrowseForFolder(0, "Please select SQL_2012_ServicePack3 folder", 0)
-        if ($sqlSp3Source -ne $null){
+        if ($sqlSp3Source -eq $null){
+            throw "User pressed cancel..."
+        }
+        elseif ($sqlSp3Source -ne $null){
             $fullPath = $sqlSp3Source.self.Path + "\*"
             Write-Host "Checking..." $fullPath.Trim("*")
             $pathCheck = Test-Path -Path $fullPath -Include SQLServer2012SP3-KB3072779-x64-ENU.exe
@@ -71,6 +154,7 @@ function DotNet3Install{
 }
 
 function SetSQLMixedMode{
+    Write-Host "Setting SQL Auth to mixed mode"
     #### Registry key change to switch SQL to mixed-mode auth after install.
     #### This is done to prevent insecure passing of /SAPWD parameter during install script arguments.
     $registryPath = "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.SQLEXPRESS\MSSQLServer"
@@ -87,8 +171,9 @@ function SetSQLMixedMode{
 }
 
 function SetSQLTCPPort{
+    [CmdletBinding()]
+    Param()
     #### Reconfigure TCP port to that of the typical 2012 standard install.
-    #.$profile.CurrentUserCurrentHost
     # Needed to reload current Powershell profile to make the sqlps module available, as it was installed with SQL within the same session.
     Import-Module -DisableNameChecking sqlps
     $MachineObject = New-Object ('Microsoft.SqlServer.Management.Smo.WMI.ManagedComputer') "localhost"
@@ -154,16 +239,27 @@ function InstallSP3{
     Write-Host $separator
 }
 
-function ScriptLoad{
-    Write-Host "#"
-    Write-Host "##"
-    Write-Host "###"
-    Write-Host "####"
+function Set-DLLDatabases($scriptPath){
+    Import-Module -DisableNameChecking sqlps
+    Set-Location -Path $scriptPath
+    Invoke-Sqlcmd -InputFile ".\create_DLL_Databases.sql" -ServerInstance "localhost\SQLEXPRESS"
+    Write-Host "The following databases have been created:"
+    Invoke-Sqlcmd -Query "USE Master; SELECT name, database_id, create_date FROM sys.databases WHERE database_id > 4;" -ServerInstance "localhost\SQLEXPRESS"
+}
+
+function Set-DLIDatabases($scriptPath){
+    Import-Module -DisableNameChecking sqlps
+    Set-Location -Path $scriptPath
+    Invoke-Sqlcmd -InputFile ".\create_DLI_Databases.sql" -ServerInstance "localhost\SQLEXPRESS"
+    Write-Host "The following databases have been created:"
+    Invoke-Sqlcmd -Query "USE Master; SELECT name, database_id, create_date FROM sys.databases WHERE database_id > 4;" -ServerInstance "localhost\SQLEXPRESS"
 }
 
 # Begin Script
 Start-Transcript -Path $logfile
-ScriptLoad
+Write-Host "`n"
+Write-Host "Please select the product that this test server will be used for:" -ForegroundColor Yellow
+$productType = Get-ProductType
 Write-Host "`n"
 Write-Host "Please browse to SQL_2012_Standard folder" -ForegroundColor Yellow
 GetSQLSource
@@ -200,22 +296,26 @@ If ($sqlSetupPath -eq $null -Or $sqlSp3Path -eq $null){
     Write-Host $separator
     InstallSQL
 
-    Write-Host "Installing SQL 2012 Service Pack 3"
+    Write-Host "Installing SQL 2012 Service Pack 3..."
     Write-Host $separator
     InstallSP3
 
-    Write-Host "Setting SQL Auth to mixed mode..."
-    SetSQLMixedMode
-    Write-Host "`n"
     # Create New PSSession locally so SetSQLTCPPort function is able to Import-Module that's not available within this session.
     $session = New-PSSession
+    Write-Host "Configuring databases for product type..."
+    Write-Host "`n"
+    switch ($productType){
+        1 {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLLDatabases} -ArgumentList $scriptPath; break}
+        2 {Invoke-Command -Session $session -ScriptBlock ${function:Set-DLIDatabases} -ArgumentList $scriptPath; break}
+        3 {SetSQLMixedMode; break}
+    }
     Write-Host "Configuring correct TCP Port number"
+    $session = New-PSSession
     Invoke-Command -Session $session -ScriptBlock ${function:SetSQLTCPPort}
-    #SetSQLTCPPort
+    Stop-Transcript
     Write-Host "`n"
 
     Write-Host "*********" -ForegroundColor Green
-    Stop-Transcript
     Read-Host "SQL Express Test Server installation complete.  Reboot required....press Enter to reboot"
     Restart-Computer
     exit

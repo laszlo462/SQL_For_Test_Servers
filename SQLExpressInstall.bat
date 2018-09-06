@@ -10,7 +10,7 @@ cls
 
 echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 echo:
-echo This script will install SQL Server 2012 Express for IBE B.08 or DynaLync 1.2 Test Servers.
+echo This script will install SQL Server 2012 Express for IBE B.08 or DynaLync 1.2 / DLI Test Servers.
 echo:
 echo Please ensure the following folders from the DynaLync 330149 install files are present on this server.
 echo - SQL_2012_Standard

@@ -244,7 +244,7 @@ function Set-DLLDatabases($scriptPath){
     Set-Location -Path $scriptPath
     Invoke-Sqlcmd -InputFile ".\create_DLL_Databases.sql" -ServerInstance "localhost\SQLEXPRESS"
     Write-Host "The following databases have been created:"
-    Invoke-Sqlcmd -Query "USE Master; SELECT name, database_id, create_date FROM sys.databases WHERE database_id > 4;"
+    Invoke-Sqlcmd -Query "USE Master; SELECT name, database_id, create_date FROM sys.databases WHERE database_id > 4;" -ServerInstance "localhost\SQLEXPRESS"
 }
 
 function Set-DLIDatabases($scriptPath){
@@ -252,7 +252,7 @@ function Set-DLIDatabases($scriptPath){
     Set-Location -Path $scriptPath
     Invoke-Sqlcmd -InputFile ".\create_DLI_Databases.sql" -ServerInstance "localhost\SQLEXPRESS"
     Write-Host "The following databases have been created:"
-    Invoke-Sqlcmd -Query "USE Master; SELECT name, database_id, create_date FROM sys.databases WHERE database_id > 4;"
+    Invoke-Sqlcmd -Query "USE Master; SELECT name, database_id, create_date FROM sys.databases WHERE database_id > 4;" -ServerInstance "localhost\SQLEXPRESS"
 }
 
 # Begin Script

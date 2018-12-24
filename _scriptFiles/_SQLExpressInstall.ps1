@@ -1,7 +1,7 @@
 # Author: Steve Szabo
 # Date: 07/18/2018
 # Installs SQL Server 2012 Express as per IBE defaults + Service Pack 3, for IBE test server deployment.
-# Version 2.0 - 081018
+# Version 2.1 - 122418
 [CmdletBinding()]
 Param()
 # Loading assemblies for Windows Forms
